@@ -200,6 +200,48 @@ create_mir_surface (GdkDisplay *display,
 }
 
 static void
+ensure_surface (GdkWindow *window);
+
+static MirSurface *
+create_mir_menu_surface (GdkDisplay     *display,
+                         gint            x,
+                         gint            y,
+                         gint            width,
+                         gint            height,
+                         GdkWindow      *parent,
+                         MirBufferUsage  buffer_usage)
+{
+  MirSurfaceSpec *spec;
+  MirConnection *connection;
+  MirPixelFormat format;
+  MirRectangle rect;
+  MirSurface *surface;
+  GdkMirWindowImpl *parent_impl;
+
+  connection = gdk_mir_display_get_mir_connection (display);
+  format = _gdk_mir_display_get_pixel_format (display, buffer_usage);
+  parent_impl = parent ? GDK_MIR_WINDOW_IMPL (parent->impl) : NULL;
+  if (parent_impl)
+    ensure_surface (parent);
+  rect.left = x;
+  rect.top = y;
+  rect.width = 0;
+  rect.height = 0;
+  spec = mir_connection_create_spec_for_menu_surface (connection,
+                                                      width,
+                                                      height,
+                                                      format,
+                                                      parent_impl ? parent_impl->surface : NULL,
+                                                      &rect,
+                                                      mir_edge_attachment_horizontal);
+  mir_surface_spec_set_buffer_usage (spec, buffer_usage);
+  surface = mir_surface_create_sync (spec);
+  mir_surface_spec_release (spec);
+
+  return surface;
+}
+
+static void
 ensure_surface_full (GdkWindow *window,
                      MirBufferUsage buffer_usage)
 {
@@ -217,9 +259,24 @@ ensure_surface_full (GdkWindow *window,
 
   event_delegate.context = window_ref;
 
-  impl->surface = create_mir_surface (gdk_window_get_display (window),
-                                      window->width, window->height,
-                                      buffer_usage);
+  switch (gdk_window_get_type_hint (window))
+    {
+      case GDK_WINDOW_TYPE_HINT_MENU:
+      case GDK_WINDOW_TYPE_HINT_DROPDOWN_MENU:
+      case GDK_WINDOW_TYPE_HINT_POPUP_MENU:
+      case GDK_WINDOW_TYPE_HINT_COMBO:
+        impl->surface = create_mir_menu_surface (gdk_window_get_display (window),
+                                                 impl->transient_x, impl->transient_y,
+                                                 window->width, window->height,
+                                                 gdk_window_get_parent (window),
+                                                 buffer_usage);
+        break;
+      default:
+        impl->surface = create_mir_surface (gdk_window_get_display (window),
+                                            window->width, window->height,
+                                            buffer_usage);
+        break;
+    }
 
   MirEvent resize_event;
 
@@ -295,7 +352,24 @@ should_render_in_parent (GdkWindow *window)
 {
   GdkMirWindowImpl *impl = GDK_MIR_WINDOW_IMPL (window->impl);
 
-  return impl->transient_for && gdk_window_get_window_type (window) != GDK_WINDOW_TOPLEVEL;
+  if (!impl->transient_for)
+    return FALSE;
+
+  if (gdk_window_get_window_type (window) == GDK_WINDOW_TOPLEVEL)
+    return FALSE;
+
+  switch (gdk_window_get_type_hint (window))
+    {
+      case GDK_WINDOW_TYPE_HINT_MENU:
+      case GDK_WINDOW_TYPE_HINT_DROPDOWN_MENU:
+      case GDK_WINDOW_TYPE_HINT_POPUP_MENU:
+      case GDK_WINDOW_TYPE_HINT_COMBO:
+        return FALSE;
+      default:
+        break;
+    }
+
+  return TRUE;
 }
 
 static void
