@@ -227,13 +227,13 @@ create_mir_menu_surface (GdkDisplay     *display,
   rect.top = y;
   rect.width = 0;
   rect.height = 0;
-  spec = mir_connection_create_spec_for_menu_surface (connection,
-                                                      width,
-                                                      height,
-                                                      format,
-                                                      parent_impl ? parent_impl->surface : NULL,
-                                                      &rect,
-                                                      mir_edge_attachment_horizontal);
+  spec = mir_connection_create_spec_for_menu (connection,
+                                              width,
+                                              height,
+                                              format,
+                                              parent_impl ? parent_impl->surface : NULL,
+                                              &rect,
+                                              mir_edge_attachment_horizontal);
   mir_surface_spec_set_buffer_usage (spec, buffer_usage);
   surface = mir_surface_create_sync (spec);
   mir_surface_spec_release (spec);
