@@ -1053,15 +1053,17 @@ GtkComboBox {
   border-style: solid;
   border-color: $borders_color;
   border-radius: 7px 7px 0 0;
-  background-color: transparent;
+  background-color: #{{highlight}};
+  color: #{{title}};
 
-  @include headerbar_fill;
+  // @include headerbar_fill(#{{highlight}}, #{{highlight}}, #{{highlight}});
 
   &:backdrop {
+    color: #{{title_inactive}};
     border-color: $backdrop_borders_color;
-    background-color: $bg_color;
+    background-color: #{{inactive}};
     background-image: none;
-    box-shadow: inset 0 1px $top_hilight;
+    box-shadow: none;
   }
 
   .title {
@@ -2945,7 +2947,7 @@ GtkVolumeButton.button { padding: 8px; }
   @extend .button;
   @extend .button.flat;
   @extend .image-button;
-  @include _button_text_shadow;
+  color: #{{btn_focused_normal}};
   &:backdrop { icon-shadow: none; }
 }
 
